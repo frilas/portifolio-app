@@ -1,0 +1,74 @@
+version: 2
+
+default_node: &default_node
+  docker:
+    - image: circleci/node:10.16.0
+  working_directory: ~/portfolio-app
+
+jobs:
+  test-app:
+    <<: *default_node
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore Yarn pkg Cache
+          keys:
+            - yarn-packages-{{ checksum "yarn.lock" }}
+      - run:
+          name: Install Yarn dependencies
+          command: yarn install --frozen-lockfile
+      - save_cache:
+          key: yarn-packages-{{ checksum "yarn.lock" }}
+          paths:
+            - ~/.cache/yarn
+      - run:
+          name: Lint
+          command: yarn lint
+      - run:
+          name: Test
+          command: yarn test
+
+  deploy-stg:
+    <<: *default_node
+    steps:
+      - checkout
+      - run:
+          name: Setup Heroku
+          command: bash .circleci/setup-heroku.sh
+      - run:
+          name: Deploy Staging
+          command: |
+            git push staging master
+            heroku restart -r staging
+
+  deploy-prod:
+    <<: *default_node
+    steps:
+      - checkout
+      - run:
+          name: Setup Heroku
+          command: bash .circleci/setup-heroku.sh
+      - run:
+          name: Deploy Production
+          command: |
+            git push production master
+            heroku restart -r production
+
+workflows:
+  version: 2
+  pipeline:
+    jobs:
+      - test-app
+      - deploy-stg:
+          requires:
+            - test-app
+          filters:
+            branches:
+              only: master
+      - approve-deploy-prod:
+          type: approval
+          requires:
+            - deploy-stg
+      - deploy-prod:
+          requires:
+            - approve-deploy-prod
