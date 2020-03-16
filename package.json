@@ -40,7 +40,6 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-optional-chaining": "^7.7.5",
-    "@gang-of-front/friday": "^0.0.5",
     "@testing-library/jest-dom": "^5.1.1",
     "@testing-library/react": "^9.1.2",
     "@testing-library/react-hooks": "^2.0.1",
